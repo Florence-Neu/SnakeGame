@@ -20,7 +20,7 @@ public class GamePanel extends JPanel implements ActionListener {
         snake = new Snake();
         spawnFood(); // Zufälliges Essen generieren
 
-        timer = new Timer(100, this);
+        timer = new Timer(200, this);
         timer.start();
 
         gameOver = false; // Am Anfang ist das Spiel nicht vorbei
@@ -59,9 +59,12 @@ public class GamePanel extends JPanel implements ActionListener {
         if (!gameOver) {
             // Spielfeld zeichnen
             g.setColor(Color.GRAY);
-            for (int i = 0; i < getWidth(); i += 25) {
-                g.drawLine(i, 0, i, getHeight());
-                g.drawLine(0, i, getWidth(), i);
+            // Rasterlinien zeichnen, ohne die letzte Linie zu zeichnen, um Abdeckung zu vermeiden
+            for (int i = 0; i <= getWidth(); i += 25) { // <= für die letzte Linie
+                g.drawLine(i, 0, i, getHeight()); // Vertikale Linien
+            }
+            for (int i = 0; i <= getHeight(); i += 25) { // <= für die letzte Linie
+                g.drawLine(0, i, getWidth(), i); // Horizontale Linien
             }
 
             // Schlange zeichnen
@@ -69,7 +72,7 @@ public class GamePanel extends JPanel implements ActionListener {
 
             // Essen zeichnen
             g.setColor(Color.RED);
-            g.fillRect(food.x * 25, food.y * 25, 25, 25);
+            g.fillRect(food.x * 25, food.y * 25, 25, 25); // Futter im Raster zeichnen
 
             // Punktestand anzeigen
             g.setColor(Color.WHITE);
@@ -81,6 +84,8 @@ public class GamePanel extends JPanel implements ActionListener {
             g.drawString("Drücke ENTER, um neu zu starten", getWidth() / 2 - 90, getHeight() / 2 + 10);
         }
     }
+
+
 
     @Override
     public void actionPerformed(ActionEvent e) {
@@ -127,11 +132,26 @@ public class GamePanel extends JPanel implements ActionListener {
     }
 
     private void spawnFood() {
-        // Anstelle von getWidth() und getHeight() feste Werte verwenden
         Random rand = new Random();
-        int x = rand.nextInt(600 / 25); // 600 ist die Breite des Spielfelds
-        int y = rand.nextInt(600 / 25); // 600 ist die Höhe des Spielfelds
-        food = new Point(x, y);
+        boolean positionValid = false;
+
+        while (!positionValid) {
+            int x = rand.nextInt(600 / 25); // 600 ist die Breite des Spielfelds
+            int y = rand.nextInt(600 / 25); // 600 ist die Höhe des Spielfelds
+
+            // Überprüfen, ob die Position nicht auf der Schlange ist
+            positionValid = true; // Setze zu Beginn an, dass die Position gültig ist
+            for (Point segment : snake.getBody()) { // Gehe durch die Segmente der Schlange
+                if (segment.equals(new Point(x, y))) {
+                    positionValid = false; // Ungültige Position
+                    break; // Breche die Schleife ab
+                }
+            }
+
+            if (positionValid) {
+                food = new Point(x, y); // Wenn die Position gültig ist, setze das Futter
+            }
+        }
     }
 
     private void resetGame() {

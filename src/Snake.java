@@ -64,6 +64,10 @@ public class Snake {
         return direction;
     }
 
+    public List<Point> getBody() {
+        return body; // Methode, die die Liste der Segmente der Schlange zurückgibt
+    }
+
     public void draw(Graphics g) {
         g.setColor(Color.GREEN);
         for (Point p : body) {
