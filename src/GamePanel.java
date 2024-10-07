@@ -4,161 +4,104 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.util.Random;
 
 public class GamePanel extends JPanel implements ActionListener {
-    private Timer timer;
-    private Snake snake;
-    private Point food; // Essen
-    private boolean gameOver; // Spielende-Status
-    private int score; // Punktestand
+    public static final int WIDTH = 600; // Breite des Panels
+    public static final int HEIGHT = 600; // Höhe des Panels
+    private int foodEaten = 0; // Zähler für Futter-Treffer
+    private Snake snake; // Beispiel für die Schlange
+    private Point food; // Beispiel für das Futter
+    private SnakeGame snakeGame; // Referenz auf die SnakeGame-Instanz
+    private final int size = 30; // Größe des Schlangenteils
 
-    public GamePanel() {
-        // Hintergrundfarbe setzen
-        setBackground(Color.BLACK);
+    public GamePanel(SnakeGame snakeGame) {
+        this.snakeGame = snakeGame; // Setze die Referenz auf die SnakeGame-Instanz
+        this.snake = new Snake(); // Initialisiere die Schlange
 
-        snake = new Snake();
-        spawnFood(); // Zufälliges Essen generieren
-
-        timer = new Timer(200, this);
+        // Initialisiere dein Spiel (Timer, Listener usw.)
+        Timer timer = new Timer(200, this);
         timer.start();
+        generateFood(); // Futter generieren, wenn das Panel erstellt wird
 
-        gameOver = false; // Am Anfang ist das Spiel nicht vorbei
-        score = 0;
-
-        // Tastensteuerung hinzufügen
-        setFocusable(true);
+        // Tasteneingaben für Steuerung der Schlange
         addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                int key = e.getKeyCode();
-                if (!gameOver) {
-                    if (key == KeyEvent.VK_UP && snake.getDirection() != 2) {
-                        snake.setDirection(0); // nach oben
-                    } else if (key == KeyEvent.VK_RIGHT && snake.getDirection() != 3) {
-                        snake.setDirection(1); // nach rechts
-                    } else if (key == KeyEvent.VK_DOWN && snake.getDirection() != 0) {
-                        snake.setDirection(2); // nach unten
-                    } else if (key == KeyEvent.VK_LEFT && snake.getDirection() != 1) {
-                        snake.setDirection(3); // nach links
-                    }
-                } else if (key == KeyEvent.VK_ENTER) {
-                    resetGame(); // Spiel zurücksetzen, wenn Enter gedrückt wird
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_UP -> snake.setDirection(0);
+                    case KeyEvent.VK_RIGHT -> snake.setDirection(1);
+                    case KeyEvent.VK_DOWN -> snake.setDirection(2);
+                    case KeyEvent.VK_LEFT -> snake.setDirection(3);
                 }
             }
         });
+        setFocusable(true); // Fokus auf das Panel setzen
     }
-
-    @Override
-    public void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        draw(g); // Zeichnet das Spielfeld, die Schlange, das Essen und Spielende
-    }
-
-    private void draw(Graphics g) {
-        if (!gameOver) {
-            // Spielfeld zeichnen
-            g.setColor(Color.GRAY);
-            // Rasterlinien zeichnen, ohne die letzte Linie zu zeichnen, um Abdeckung zu vermeiden
-            for (int i = 0; i <= getWidth(); i += 25) { // <= für die letzte Linie
-                g.drawLine(i, 0, i, getHeight()); // Vertikale Linien
-            }
-            for (int i = 0; i <= getHeight(); i += 25) { // <= für die letzte Linie
-                g.drawLine(0, i, getWidth(), i); // Horizontale Linien
-            }
-
-            // Schlange zeichnen
-            snake.draw(g);
-
-            // Essen zeichnen
-            g.setColor(Color.RED);
-            g.fillRect(food.x * 25, food.y * 25, 25, 25); // Futter im Raster zeichnen
-
-            // Punktestand anzeigen
-            g.setColor(Color.WHITE);
-            g.drawString("Punkte: " + score, 10, 10);
-        } else {
-            // Spielende-Bildschirm
-            g.setColor(Color.WHITE);
-            g.drawString("Game Over", getWidth() / 2 - 30, getHeight() / 2 - 10);
-            g.drawString("Drücke ENTER, um neu zu starten", getWidth() / 2 - 90, getHeight() / 2 + 10);
-        }
-    }
-
-
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        if (!gameOver) {
-            snake.move(); // Schlange bewegen
-            checkCollisions(); // Prüfen auf Kollisionen
-            checkFood(); // Prüfen, ob das Essen eingesammelt wurde
+        // Spiel-Logik hier (Bewegung der Schlange, Kollision usw.)
+        snake.move(); // Schlange bewegen
+
+        // Überprüfen, ob die Schlange das Futter frisst
+        if (snakeEatsFood()) {
+            foodEaten++;
+            snake.grow(); // Schlange wachsen lassen
+            if (foodEaten == 3) {
+                snakeGame.askQuestion(); // Frage aus der SnakeGame-Klasse stellen
+                foodEaten = 0; // Zähler zurücksetzen
+            }
+            generateFood(); // Neues Futter generieren
         }
-        repaint(); // Fenster aktualisieren
+
+        repaint(); // Aktualisiere die Anzeige
     }
 
-    private void checkFood() {
-        // Prüfen, ob die Schlange das Essen erreicht hat
-        if (snake.getHead().equals(food)) {
-            snake.grow(); // Schlange wächst
-            score++; // Punkte erhöhen
-            spawnFood(); // Neues Essen generieren
+    // Methode zum Überprüfen, ob die Schlange das Futter frisst
+    private boolean snakeEatsFood() {
+        Rectangle snakeHead = new Rectangle(snake.getHeadX(), snake.getHeadY(), snake.getWidth(), snake.getHeight());
+        Rectangle foodRect = new Rectangle(food.x, food.y, 30, 30); // Futter hat eine Größe von 30x30
 
-            // Geschwindigkeit erhöhen, wenn die Schlange länger wird
-            if (timer.getDelay() > 50) {
-                timer.setDelay(timer.getDelay() - 5); // Timer schneller machen
-            }
-        }
+        return snakeHead.intersects(foodRect); // Überprüft, ob die Schlange das Futter berührt
     }
 
-    private void checkCollisions() {
-        // Prüfen, ob die Schlange sich selbst getroffen hat
-        if (snake.checkCollision()) {
-            gameOver = true; // Spielende, wenn sie sich selbst trifft
-        } else {
-            // Wenn die Schlange die Wand berührt, sie an die gegenüberliegende Seite setzen
-            Point head = snake.getHead();
-            if (head.x < 0) { // Wenn die Schlange links aus dem Fenster geht
-                head.x = (600 / 25) - 1; // An die rechte Seite setzen
-            } else if (head.x >= (600 / 25)) { // Wenn die Schlange rechts aus dem Fenster geht
-                head.x = 0; // An die linke Seite setzen
-            }
-            if (head.y < 0) { // Wenn die Schlange oben aus dem Fenster geht
-                head.y = (600 / 25) - 1; // An die untere Seite setzen
-            } else if (head.y >= (600 / 25)) { // Wenn die Schlange unten aus dem Fenster geht
-                head.y = 0; // An die obere Seite setzen
-            }
-        }
+    // Methode zum Generieren von Futter an einer zufälligen Position
+    private void generateFood() {
+        int x = (int) (Math.random() * (getWidth() / size)) * size; // Position auf einem 30-Pixel-Raster
+        int y = (int) (Math.random() * (getHeight() / size)) * size; // Position auf einem 30-Pixel-Raster
+        food = new Point(x, y);
     }
 
-    private void spawnFood() {
-        Random rand = new Random();
-        boolean positionValid = false;
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        // Zeichne das Raster
+        drawGrid(g); // Methode zum Zeichnen des Rasters
+        // Zeichne das Spiel
+        drawFood(g); // Methode zum Zeichnen des Futters
+        snake.draw(g); // Methode zum Zeichnen der Schlange
+    }
 
-        while (!positionValid) {
-            int x = rand.nextInt(600 / 25); // 600 ist die Breite des Spielfelds
-            int y = rand.nextInt(600 / 25); // 600 ist die Höhe des Spielfelds
+    // Methode zum Zeichnen des Rasters
+    private void drawGrid(Graphics g) {
+        g.setColor(Color.LIGHT_GRAY); // Farbe für das Raster
+        int width = getWidth();
+        int height = getHeight();
 
-            // Überprüfen, ob die Position nicht auf der Schlange ist
-            positionValid = true; // Setze zu Beginn an, dass die Position gültig ist
-            for (Point segment : snake.getBody()) { // Gehe durch die Segmente der Schlange
-                if (segment.equals(new Point(x, y))) {
-                    positionValid = false; // Ungültige Position
-                    break; // Breche die Schleife ab
-                }
-            }
+        // Vertikale Linien
+        for (int x = 0; x < width; x += size) {
+            g.drawLine(x, 0, x, height); // von (x, 0) bis (x, height)
+        }
 
-            if (positionValid) {
-                food = new Point(x, y); // Wenn die Position gültig ist, setze das Futter
-            }
+        // Horizontale Linien
+        for (int y = 0; y < height; y += size) {
+            g.drawLine(0, y, width, y); // von (0, y) bis (width, y)
         }
     }
 
-    private void resetGame() {
-        snake = new Snake(); // Neue Schlange erstellen
-        score = 0; // Punktestand zurücksetzen
-        spawnFood(); // Neues Essen generieren
-        timer.setDelay(100); // Geschwindigkeit zurücksetzen
-        gameOver = false; // Spiel wieder starten
+    // Methode zum Zeichnen des Futters
+    private void drawFood(Graphics g) {
+        g.setColor(Color.RED); // Farbe für das Futter
+        g.fillRect(food.x, food.y, size, size); // Futter als Quadrat zeichnen
     }
 }

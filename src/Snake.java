@@ -1,77 +1,90 @@
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedList;
 
 public class Snake {
-    private List<Point> body; // Liste von Segmenten der Schlange
-    private int direction; // Richtung der Schlange (0=oben, 1=rechts, 2=unten, 3=links)
+    private LinkedList<Point> body;
+    private int direction; // 0: Up, 1: Right, 2: Down, 3: Left
+    private final int size = 30; // Größe des Schlangenteils
+    private int score;
 
     public Snake() {
-        body = new ArrayList<>();
-        body.add(new Point(5, 5)); // Startpunkt der Schlange
+        body = new LinkedList<>();
+        body.add(new Point(300, 300)); // Startposition
         direction = 1; // Startbewegung nach rechts
+        score = 0;
     }
 
     public void move() {
-        // Kopf der Schlange
-        Point head = body.get(0);
-        Point newHead = new Point(head);
+        Point head = body.getFirst();
+        Point newHead = new Point(head.x, head.y);
 
-        // Bewegung in die aktuelle Richtung
+        // Bewegungsrichtung ändern
         switch (direction) {
-            case 0 -> newHead.y -= 1; // nach oben
-            case 1 -> newHead.x += 1; // nach rechts
-            case 2 -> newHead.y += 1; // nach unten
-            case 3 -> newHead.x -= 1; // nach links
+            case 0 -> newHead.y -= size; // nach oben
+            case 1 -> newHead.x += size; // nach rechts
+            case 2 -> newHead.y += size; // nach unten
+            case 3 -> newHead.x -= size; // nach links
         }
 
-        // Neuen Kopf an den Anfang der Liste setzen
-        body.add(0, newHead);
-        body.remove(body.size() - 1); // Das letzte Segment entfernen (Schlange bewegt sich)
+        // Wrapping: Schlange erscheint auf der anderen Seite, wenn sie den Rand verlässt
+        if (newHead.x < 0) {
+            newHead.x = GamePanel.WIDTH - size; // Rechts erscheinen
+        } else if (newHead.x >= GamePanel.WIDTH) {
+            newHead.x = 0; // Links erscheinen
+        }
+
+        if (newHead.y < 0) {
+            newHead.y = GamePanel.HEIGHT - size; // Unten erscheinen
+        } else if (newHead.y >= GamePanel.HEIGHT) {
+            newHead.y = 0; // Oben erscheinen
+        }
+
+        // Füge neuen Kopf hinzu und entferne das letzte Segment
+        body.addFirst(newHead);
+        body.removeLast();
     }
 
     public void grow() {
-        // Fügt ein neues Segment an der letzten Position der Schlange hinzu
-        body.add(new Point(body.get(body.size() - 1)));
+        // Schlange wachsen lassen
+        Point tail = body.getLast();
+        body.add(new Point(tail.x, tail.y));
     }
 
-    public boolean checkCollision() {
-        // Prüfen, ob der Kopf mit einem anderen Teil der Schlange kollidiert
-        Point head = body.get(0);
-        for (int i = 1; i < body.size(); i++) {
-            if (head.equals(body.get(i))) {
-                return true; // Kollision mit sich selbst
-            }
+    public void setDirection(int newDirection) {
+        // Verhindere, dass die Schlange sich in die entgegengesetzte Richtung bewegt
+        if (Math.abs(newDirection - direction) != 2) {
+            direction = newDirection;
         }
-        return false;
     }
 
-    public boolean hitWall(int width, int height) {
-        // Prüfen, ob die Schlange die Wand berührt
-        Point head = body.get(0);
-        return head.x < 0 || head.x >= width || head.y < 0 || head.y >= height;
+    public int getHeadX() {
+        return body.getFirst().x;
     }
 
-    public Point getHead() {
-        return body.get(0); // Kopf der Schlange
+    public int getHeadY() {
+        return body.getFirst().y;
     }
 
-    public void setDirection(int direction) {
-        this.direction = direction;
+    public int getWidth() {
+        return size;
     }
 
-    public int getDirection() {
-        return direction;
-    }
-
-    public List<Point> getBody() {
-        return body; // Methode, die die Liste der Segmente der Schlange zurückgibt
+    public int getHeight() {
+        return size;
     }
 
     public void draw(Graphics g) {
         g.setColor(Color.GREEN);
         for (Point p : body) {
-            g.fillRect(p.x * 25, p.y * 25, 25, 25); // Jedes Segment der Schlange zeichnen
+            g.fillRect(p.x, p.y, size, size);
         }
+    }
+
+    public void addScore(int points) {
+        score += points;
+    }
+
+    public int getScore() {
+        return score;
     }
 }
